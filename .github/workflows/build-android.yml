@@ -37,6 +37,25 @@ jobs:
         working-directory: source/ne_shtat_auto_tune
         run: chmod +x bootstrap.sh && ./bootstrap.sh
 
+      - name: Fix spectrum analyzer numeric types
+        working-directory: source/ne_shtat_auto_tune
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("lib/measurement/spectrum_analyzer.dart")
+          s = p.read_text()
+
+          old = "return results.map((v) => v <= -80 ? -90 : v - reference).toList();"
+          new = "return results.map<double>((v) => v <= -80.0 ? -90.0 : v - reference).toList();"
+
+          if old not in s:
+              raise SystemExit("Target line not found; source file differs.")
+
+          p.write_text(s.replace(old, new))
+          print("Spectrum analyzer type fix applied.")
+          PY
+
       - name: Build APK
         working-directory: source/ne_shtat_auto_tune
         run: flutter build apk --release
@@ -48,3 +67,4 @@ jobs:
           path: source/ne_shtat_auto_tune/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
           retention-days: 7
+          
